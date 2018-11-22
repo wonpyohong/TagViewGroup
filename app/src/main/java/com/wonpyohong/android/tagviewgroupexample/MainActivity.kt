@@ -13,17 +13,5 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        textView1.setOnLongClickListener {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N) {
-                textView1.startDragAndDrop(null, View.DragShadowBuilder(textView1), textView1, 0)
-            } else {
-                textView1.startDrag(null, View.DragShadowBuilder(textView1), textView1, 0)
-            }
-
-            textView1.visibility = View.INVISIBLE
-
-            true
-        }
     }
 }
