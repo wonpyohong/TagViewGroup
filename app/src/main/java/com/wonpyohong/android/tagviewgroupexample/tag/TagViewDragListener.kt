@@ -7,13 +7,17 @@ import android.view.DragEvent
 import android.view.View
 
 class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
-    private var lastSwapInfo: SwapInfo? = null
+    private var prevX = 0f
+    var lastLeftMostX = 0f
+    var lastRightMostX = 0f
 
     override fun onDrag(destinationView: View, event: DragEvent): Boolean {
         val draggingTag = event.localState as Tag
         when (event.action) {
             DragEvent.ACTION_DRAG_STARTED -> {
                 tagViewGroup.isDragging = true
+                lastLeftMostX = 0f
+                lastRightMostX = tagViewGroup.width.toFloat()
             }
 
             DragEvent.ACTION_DRAG_LOCATION -> {
@@ -21,7 +25,7 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
                     return true
                 }
 
-                shouldSwap(draggingTag, event)?.let { (dragginViewIndex, targetIndex) ->
+                shouldRearrange(draggingTag, event)?.let { (dragginViewIndex, targetIndex) ->
                     var indexToAdd = targetIndex
 
                     val isDownDragging = draggingTag.rowIndex < tagViewGroup.tagList[targetIndex].rowIndex
@@ -39,6 +43,8 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
 
                     tagViewGroup.requestLayout()
                 }
+
+                prevX = event.x
             }
 
             DragEvent.ACTION_DROP -> {
@@ -63,34 +69,44 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
         return true
     }
 
-    private fun shouldSwap(draggingTag: Tag, event: DragEvent): Pair<Int, Int>? {
+    private fun shouldRearrange(draggingTag: Tag, event: DragEvent): Pair<Int, Int>? {
+        val isRight = prevX - event.x < 0
+        val isLeft = prevX - event.x > 0
+
         val draggingCenter = Point(event.x.toInt(), event.y.toInt())
 
         tagViewGroup.tagList.forEachIndexed { targetIndex, tag ->
             if (draggingCenter in tag.view.getRect()) {
                 val draggingViewIndex = tagViewGroup.tagList.indexOfFirst { it == draggingTag }
 
-                val swapPair = Pair(draggingViewIndex, targetIndex)
-                if (lastSwapInfo == null || lastSwapInfo != SwapInfo(swapPair)) {
-                    lastSwapInfo = SwapInfo(swapPair)
-                    return swapPair
+                return if (draggingTag.rowIndex == tag.rowIndex) {
+                    if (isLeft) {
+                        lastLeftMostX = event.x
+                        if (draggingViewIndex > targetIndex && lastRightMostX - event.x > 100) {
+                            Pair(draggingViewIndex, targetIndex)
+                        } else {
+                            null
+                        }
+                    } else if (isRight) {
+                        lastRightMostX = event.x
+                        if (draggingViewIndex < targetIndex && event.x - lastLeftMostX > 100) {
+                            Pair(draggingViewIndex, targetIndex)
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                } else {
+                    Pair(draggingViewIndex, targetIndex)
                 }
             }
         }
+
         return null
     }
 
     fun View.getRect() = Rect(left, top, right, bottom)
 
     operator fun Rect.contains(point: Point) = contains(point.x, point.y)
-
-    data class SwapInfo(val swapPair: Pair<Int, Int>) {
-        override fun equals(other: Any?): Boolean {
-            if (other !is SwapInfo) {
-                return false
-            }
-            return (swapPair.first == other.swapPair.first && swapPair.second == other.swapPair.second)
-                    || (swapPair.first == other.swapPair.second && swapPair.second == other.swapPair.first)
-        }
-    }
 }
