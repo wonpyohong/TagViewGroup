@@ -2,14 +2,17 @@ package com.wonpyohong.android.tagviewgroupexample.tag
 
 import android.graphics.Point
 import android.graphics.Rect
-import android.util.Log
 import android.view.DragEvent
 import android.view.View
 
 class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
     private var prevX = 0f
+    private var prevY = 0f
+
     var lastLeftMostX = 0f
     var lastRightMostX = 0f
+    var lastUpMostX = 0f
+    var lastDownMostX = 0f
 
     override fun onDrag(destinationView: View, event: DragEvent): Boolean {
         val draggingTag = event.localState as Tag
@@ -18,6 +21,8 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
                 tagViewGroup.isDragging = true
                 lastLeftMostX = 0f
                 lastRightMostX = tagViewGroup.width.toFloat()
+                lastUpMostX = 0f
+                lastDownMostX = tagViewGroup.height.toFloat()
             }
 
             DragEvent.ACTION_DRAG_LOCATION -> {
@@ -51,6 +56,7 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
                 }
 
                 prevX = event.x
+                prevY = event.y
             }
 
             DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> {
@@ -67,6 +73,8 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
     private fun shouldRearrange(draggingTag: Tag, event: DragEvent): Pair<Int, Int>? {
         val isRight = prevX - event.x < 0
         val isLeft = prevX - event.x > 0
+        val isUp = prevY - event.y > 0
+        val isDown = prevY - event.y < 0
 
         val draggingCenter = Point(event.x.toInt(), event.y.toInt())
 
@@ -92,8 +100,26 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
                     } else {
                         null
                     }
+                } else if (draggingTag.rowIndex != tag.rowIndex) {
+                    if (isUp) {
+                        lastUpMostX = event.y
+                        if (draggingTag.rowIndex > tag.rowIndex && lastDownMostX - event.y > 100) {
+                            Pair(draggingViewIndex, targetIndex)
+                        } else {
+                            null
+                        }
+                    } else if (isDown) {
+                        lastDownMostX = event.y
+                        if (draggingTag.rowIndex < tag.rowIndex && event.y - lastUpMostX > 100) {
+                            Pair(draggingViewIndex, targetIndex)
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
                 } else {
-                    Pair(draggingViewIndex, targetIndex)
+                    null
                 }
             }
         }
