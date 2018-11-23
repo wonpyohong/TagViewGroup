@@ -13,5 +13,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        tagViewGroup.addTag("55555344444")
+        tagViewGroup.addTag("111111")
     }
 }

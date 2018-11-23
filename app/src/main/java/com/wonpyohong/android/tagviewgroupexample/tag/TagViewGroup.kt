@@ -1,23 +1,28 @@
 package com.wonpyohong.android.tagviewgroupexample.tag
 
 import android.animation.LayoutTransition
-import android.content.ClipData
 import android.content.Context
-import android.graphics.*
 import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import kotlinx.android.synthetic.main.activity_main.*
+import com.wonpyohong.android.tagviewgroupexample.R
 import kotlin.math.max
 
 
 class TagViewGroup: ViewGroup {
     internal val tagList = mutableListOf<Tag>()
-    private var isFirstOnLayout = true
+    private var isFirstOnMeasure = true
     internal var isDragging = false
+
+    private val horizontalSpacing = 30
+    private val verticalSpacing = 30
+
+    private val horizontalPadding = dp2px(10f)
+    private val verticalPadding = dp2px(4f)
 
     constructor(context: Context) : this(context, null)
 
@@ -29,24 +34,11 @@ class TagViewGroup: ViewGroup {
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val widthMode = View.MeasureSpec.getMode(widthMeasureSpec)
-        val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
-        val widthSize = View.MeasureSpec.getSize(widthMeasureSpec)
-        val heightSize = View.MeasureSpec.getSize(heightMeasureSpec)
-
-        measureChildren(widthMeasureSpec, heightMeasureSpec)
-
-        setMeasuredDimension(
-            if (widthMode == View.MeasureSpec.EXACTLY) widthSize else width,
-            if (heightMode == View.MeasureSpec.EXACTLY) heightSize else height
-        )
-    }
-
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        if (isFirstOnLayout) {      // to add Views in xml
+        if (isFirstOnMeasure) {      // to add Views in xml
             val viewList = (0..(childCount - 1)).map { getChildAt(it) as TextView }
             tagList += viewList.map { Tag(it) }
             tagList.forEach { tag ->
+                tag.view.setBackgroundResource(R.drawable.round_rect_white_button)
                 tag.view.setOnLongClickListener { view ->
                     startDragCompat(tag)
                     view.alpha = 0.5f
@@ -55,9 +47,60 @@ class TagViewGroup: ViewGroup {
                 }
             }
 
-            isFirstOnLayout = false
+            isFirstOnMeasure = false
         }
 
+        val widthMode = View.MeasureSpec.getMode(widthMeasureSpec)
+        val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
+        val widthSize = View.MeasureSpec.getSize(widthMeasureSpec)
+        val heightSize = View.MeasureSpec.getSize(heightMeasureSpec)
+
+        measureChildren(widthMeasureSpec, heightMeasureSpec)
+
+        var width = 0
+        var height = 0
+
+        var rowIndex = 0
+        var rowWidth = 0
+        var rowMaxHeight = 0
+
+        tagList.forEach {
+            val childView = it.view
+            val childWidth = childView.measuredWidth
+            val childHeight = childView.measuredHeight
+
+            if (childView.visibility != View.GONE) {
+                rowWidth += childWidth
+                if (rowWidth > widthSize) {
+                    rowWidth = childWidth
+                    height += rowMaxHeight + verticalSpacing
+                    rowMaxHeight = childHeight
+
+                    rowIndex++
+                } else {
+                    rowMaxHeight = Math.max(rowMaxHeight, childHeight)
+                }
+
+                rowWidth += horizontalSpacing
+            }
+        }
+        height += rowMaxHeight
+        height += paddingTop + paddingBottom
+
+        if (rowIndex == 0) {
+            width = rowWidth
+            width += paddingLeft + paddingRight
+        } else {
+            width = widthSize
+        }
+
+        setMeasuredDimension(
+            if (widthMode == View.MeasureSpec.EXACTLY) widthSize else width,
+            if (heightMode == View.MeasureSpec.EXACTLY) heightSize else height
+        )
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         val parentLeft = paddingLeft
         val parentRight = r - l - paddingRight
         val parentTop = paddingTop
@@ -71,32 +114,63 @@ class TagViewGroup: ViewGroup {
         for (tag in tagList) {
             if (tag.view.visibility != View.GONE) {
                 with (tag) {
-                    if ((isDragging && tag.rowIndex > rowIndex) || childLeft + view.measuredWidth > parentRight) {
+                    val childWidth = view.measuredWidth
+                    val childHeight = view.measuredHeight
+
+                    if ((isDragging && tag.rowIndex > rowIndex) || childLeft + childWidth > parentRight) {
                         childLeft = parentLeft
-                        childTop += view.measuredHeight
-                        rowMaxHeight = view.measuredHeight
+                        childTop += rowMaxHeight + verticalSpacing
+                        rowMaxHeight = childHeight
 
                         rowIndex++
                     } else {
-                        rowMaxHeight = max(rowMaxHeight, view.measuredHeight)
+                        rowMaxHeight = max(rowMaxHeight, childHeight)
                     }
 
                     tag.rowIndex = rowIndex
                     this.view.layout(childLeft, childTop, childLeft + view.measuredWidth, childTop + view.measuredHeight)
-                    childLeft += view.measuredWidth
+                    childLeft += childWidth + horizontalSpacing
                 }
             }
         }
     }
 
+    fun addTag(text: String) {
+        val tagView = TextView(context).apply {
+            this.text = text
+            textSize = sp2px(10f)
+            setPadding(horizontalPadding.toInt(), verticalPadding.toInt(),
+                horizontalPadding.toInt(), verticalPadding.toInt()
+            )
+            setBackgroundResource(R.drawable.round_rect_white_button)
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            val tag = Tag(this)
+            setOnLongClickListener { view ->
+                startDragCompat(tag)
+                view.alpha = 0.5f
+
+                true
+            }
+        }
+
+        addView(tagView)
+    }
+
     private fun startDragCompat(tag: Tag) {
-        val clipData = ClipData.newPlainText("originalIndex", tagList.indexOf(tag).toString())
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N) {
-            tag.view.startDragAndDrop(clipData, DragShadowBuilder(tag.view), tag, 0)
+            tag.view.startDragAndDrop(null, DragShadowBuilder(tag.view), tag, 0)
         } else {
-            tag.view.startDrag(clipData, DragShadowBuilder(tag.view), tag, 0)
+            tag.view.startDrag(null, DragShadowBuilder(tag.view), tag, 0)
         }
     }
 
     internal fun isChangingLayout() = layoutTransition.isChangingLayout
+
+    private fun dp2px(dp: Float): Float {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)
+    }
+
+    private fun sp2px(sp: Float): Float {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, resources.displayMetrics)
+    }
 }
