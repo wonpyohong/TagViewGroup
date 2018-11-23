@@ -32,7 +32,13 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
                     val isUpDragging = draggingTag.rowIndex > tagViewGroup.tagList[targetIndex].rowIndex
 
                     if (isDownDragging) {
-                        indexToAdd = targetIndex - 1
+                        val tagCountOnDraggingTagRow = tagViewGroup.tagList.count { it.rowIndex == draggingTag.rowIndex }
+                        if (tagCountOnDraggingTagRow == 1) {
+                            indexToAdd = targetIndex
+                        } else {
+                            indexToAdd = targetIndex -1
+                        }
+
                         draggingTag.rowIndex = tagViewGroup.tagList[targetIndex].rowIndex
                     } else if (isUpDragging) {
                         draggingTag.rowIndex = tagViewGroup.tagList[targetIndex].rowIndex
