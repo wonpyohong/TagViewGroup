@@ -33,9 +33,9 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
 
                     if (isDownDragging) {
                         indexToAdd = targetIndex - 1
-                        draggingTag.rowIndex++
+                        draggingTag.rowIndex = tagViewGroup.tagList[targetIndex].rowIndex
                     } else if (isUpDragging) {
-                        draggingTag.rowIndex--
+                        draggingTag.rowIndex = tagViewGroup.tagList[targetIndex].rowIndex
                     }
 
                     tagViewGroup.tagList.removeAt(dragginViewIndex)
@@ -47,22 +47,11 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
                 prevX = event.x
             }
 
-            DragEvent.ACTION_DROP -> {
+            DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> {
                 tagViewGroup.isDragging = false
                 draggingTag.view.alpha = 1f
 
-                tagViewGroup.tagList
-                    .filter { it.isDummyTag() }
-                    .forEach {
-                        tagViewGroup.removeView(it.view)
-                        tagViewGroup.tagList.remove(it)
-                    }
-
                 tagViewGroup.requestLayout()
-            }
-
-            DragEvent.ACTION_DRAG_ENDED -> {
-                draggingTag.view.alpha = 1f
             }
         }
 
