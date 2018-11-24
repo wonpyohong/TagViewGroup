@@ -19,6 +19,7 @@ class MainActivity : AppCompatActivity() {
 
         tagViewGroup.addTag("55555344444")
         tagViewGroup.addTag("111111")
+        tagViewGroup.addTagList(listOf("element1", "element2"))
 
         tagViewGroup.onTagClickListener = object: TagViewGroup.OnTagClickListener {
             override fun onTagClick(tag: Tag) {

@@ -7,6 +7,7 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.util.AttributeSet
+import android.util.Log
 import android.util.StateSet
 import android.util.TypedValue
 import android.view.View
@@ -87,7 +88,7 @@ class TagViewGroup: ViewGroup {
 
             if (childView.visibility != View.GONE) {
                 rowWidth += childWidth
-                if (rowWidth > widthSize) {
+                if ((isDragging && it.rowIndex > rowIndex) || rowWidth > widthSize) {
                     rowWidth = childWidth
                     height += rowMaxHeight + defaultVerticalSpacing
                     rowMaxHeight = childHeight
@@ -149,6 +150,15 @@ class TagViewGroup: ViewGroup {
                 }
             }
         }
+    }
+
+    fun setTagList(textList: List<String>) {
+        removeAllViews()
+        addTagList(textList)
+    }
+
+    fun addTagList(textList: List<String>) {
+        textList.forEach { addTag(it) }
     }
 
     fun addTag(text: String) {
