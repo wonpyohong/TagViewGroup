@@ -2,9 +2,10 @@ package com.wonpyohong.android.tagviewgroupexample.tag
 
 import android.animation.LayoutTransition
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.util.AttributeSet
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -18,11 +19,20 @@ class TagViewGroup: ViewGroup {
     private var isFirstOnMeasure = true
     internal var isDragging = false
 
-    private val horizontalSpacing = 30
-    private val verticalSpacing = 30
+    private val defaultHorizontalSpacing = dp2px(5f)
+    private val defaultVerticalSpacing = dp2px(5f)
 
-    private val horizontalPadding = dp2px(10f)
-    private val verticalPadding = dp2px(4f)
+    private val defaultHorizontalPadding = dp2px(8f)
+    private val defaultVerticalPadding = dp2px(4f)
+
+    private val defaultTextSize = sp2px(18f)
+
+    private val defaultTextColor = Color.RED
+
+    private val defaultBackgroundColor = Color.WHITE
+    private val defaultBorderColor = Color.RED
+
+    private val defaultRadius = dp2px(24f)
 
     constructor(context: Context) : this(context, null)
 
@@ -38,7 +48,7 @@ class TagViewGroup: ViewGroup {
             val viewList = (0..(childCount - 1)).map { getChildAt(it) as TextView }
             tagList += viewList.map { Tag(it) }
             tagList.forEach { tag ->
-                tag.view.setBackgroundResource(R.drawable.round_rect_white_button)
+                setTextViewAttribute(tag.view as TextView)
                 tag.view.setOnLongClickListener { view ->
                     startDragCompat(tag)
                     view.alpha = 0.5f
@@ -73,7 +83,7 @@ class TagViewGroup: ViewGroup {
                 rowWidth += childWidth
                 if (rowWidth > widthSize) {
                     rowWidth = childWidth
-                    height += rowMaxHeight + verticalSpacing
+                    height += rowMaxHeight + defaultVerticalSpacing
                     rowMaxHeight = childHeight
 
                     rowIndex++
@@ -81,7 +91,7 @@ class TagViewGroup: ViewGroup {
                     rowMaxHeight = Math.max(rowMaxHeight, childHeight)
                 }
 
-                rowWidth += horizontalSpacing
+                rowWidth += defaultHorizontalSpacing
             }
         }
         height += rowMaxHeight
@@ -119,7 +129,7 @@ class TagViewGroup: ViewGroup {
 
                     if ((isDragging && tag.rowIndex > rowIndex) || childLeft + childWidth > parentRight) {
                         childLeft = parentLeft
-                        childTop += rowMaxHeight + verticalSpacing
+                        childTop += rowMaxHeight + defaultVerticalSpacing
                         rowMaxHeight = childHeight
 
                         rowIndex++
@@ -129,7 +139,7 @@ class TagViewGroup: ViewGroup {
 
                     tag.rowIndex = rowIndex
                     this.view.layout(childLeft, childTop, childLeft + view.measuredWidth, childTop + view.measuredHeight)
-                    childLeft += childWidth + horizontalSpacing
+                    childLeft += childWidth + defaultHorizontalSpacing
                 }
             }
         }
@@ -138,11 +148,6 @@ class TagViewGroup: ViewGroup {
     fun addTag(text: String) {
         val tagView = TextView(context).apply {
             this.text = text
-            textSize = sp2px(10f)
-            setPadding(horizontalPadding.toInt(), verticalPadding.toInt(),
-                horizontalPadding.toInt(), verticalPadding.toInt()
-            )
-            setBackgroundResource(R.drawable.round_rect_white_button)
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             val tag = Tag(this)
             setOnLongClickListener { view ->
@@ -156,6 +161,20 @@ class TagViewGroup: ViewGroup {
         addView(tagView)
     }
 
+    fun setTextViewAttribute(textView: TextView) {
+        with (textView) {
+            textSize = defaultTextSize.toFloat()
+            setTextColor(defaultTextColor)
+            setPadding(defaultHorizontalPadding, defaultVerticalPadding, defaultHorizontalPadding, defaultVerticalPadding)
+            setBackgroundResource(R.drawable.default_tag_background)
+
+            val gradientDrawable = background as GradientDrawable
+            gradientDrawable.setColor(defaultBackgroundColor)
+            gradientDrawable.setStroke(dp2px(1f), defaultBorderColor)
+            gradientDrawable.cornerRadius = defaultRadius.toFloat()
+        }
+    }
+
     private fun startDragCompat(tag: Tag) {
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N) {
             tag.view.startDragAndDrop(null, DragShadowBuilder(tag.view), tag, 0)
@@ -166,11 +185,12 @@ class TagViewGroup: ViewGroup {
 
     internal fun isChangingLayout() = layoutTransition.isChangingLayout
 
-    private fun dp2px(dp: Float): Float {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)
+    private fun dp2px(dp: Float): Int {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics).toInt()
     }
 
-    private fun sp2px(sp: Float): Float {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, resources.displayMetrics)
+    private fun sp2px(sp: Float): Int {
+        val SCREEN_DENSITY = getResources().getDisplayMetrics().density;
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp / SCREEN_DENSITY, resources.displayMetrics).toInt()
     }
 }

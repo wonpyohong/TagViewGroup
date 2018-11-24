@@ -5,5 +5,6 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 
-data class Tag(val view: View, var rowIndex: Int = 0)
+data class Tag(val view: TextView, var rowIndex: Int = 0)
