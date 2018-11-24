@@ -4,12 +4,15 @@ import android.animation.LayoutTransition
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.util.AttributeSet
+import android.util.StateSet
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import com.wonpyohong.android.tagviewgroupexample.R
 import kotlin.math.max
 
@@ -28,11 +31,15 @@ class TagViewGroup: ViewGroup {
     private val defaultTextSize = 18f
 
     private val defaultTextColor = Color.RED
+    private val defaultSelectedTextColor = Color.WHITE
 
     private val defaultBackgroundColor = Color.WHITE
     private val defaultBorderColor = Color.RED
+    private val defaultSelectedBackgroundColor = Color.RED
 
     private val defaultRadius = dp2px(24f)
+
+    var onTagClickListener: OnTagClickListener? = null
 
     constructor(context: Context) : this(context, null)
 
@@ -45,10 +52,11 @@ class TagViewGroup: ViewGroup {
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         if (isFirstOnMeasure) {      // to add Views in xml
+            isFirstOnMeasure = false
             val viewList = (0..(childCount - 1)).map { getChildAt(it) as TextView }
             tagList += viewList.map { Tag(it) }
             tagList.forEach { tag ->
-                setTextViewAttribute(tag.view as TextView)
+                setTextViewAttribute(tag)
                 tag.view.setOnLongClickListener { view ->
                     startDragCompat(tag)
                     view.alpha = 0.5f
@@ -56,8 +64,6 @@ class TagViewGroup: ViewGroup {
                     true
                 }
             }
-
-            isFirstOnMeasure = false
         }
 
         val widthMode = View.MeasureSpec.getMode(widthMeasureSpec)
@@ -150,6 +156,7 @@ class TagViewGroup: ViewGroup {
             this.text = text
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             val tag = Tag(this)
+
             setOnLongClickListener { view ->
                 startDragCompat(tag)
                 view.alpha = 0.5f
@@ -161,18 +168,37 @@ class TagViewGroup: ViewGroup {
         addView(tagView)
     }
 
-    fun setTextViewAttribute(textView: TextView) {
-        with (textView) {
+    private fun setTextViewAttribute(tag: Tag) {
+        with (tag.view) {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, defaultTextSize)
             setTextColor(defaultTextColor)
             setPadding(defaultHorizontalPadding, defaultVerticalPadding, defaultHorizontalPadding, defaultVerticalPadding)
-            setBackgroundResource(R.drawable.default_tag_background)
 
-            val gradientDrawable = background as GradientDrawable
-            gradientDrawable.setColor(defaultBackgroundColor)
-            gradientDrawable.setStroke(dp2px(1f), defaultBorderColor)
-            gradientDrawable.cornerRadius = defaultRadius.toFloat()
+            background = getStateListDrawable()
+
+            setOnClickListener {
+                this.isSelected = !isSelected
+                setTextColor(if (isSelected) defaultSelectedTextColor else defaultTextColor)
+
+                onTagClickListener?.onTagClick(tag)
+            }
         }
+    }
+
+    private fun getStateListDrawable(): StateListDrawable {
+        val selectedDrawable = context.getDrawable(R.drawable.selected_tag_background) as GradientDrawable
+        selectedDrawable.setColor(defaultSelectedBackgroundColor)
+        selectedDrawable.cornerRadius = defaultRadius.toFloat()
+
+        val defaultDrawable = context.getDrawable(R.drawable.default_tag_background) as GradientDrawable
+        defaultDrawable.setColor(defaultBackgroundColor)
+        defaultDrawable.setStroke(dp2px(1f), defaultBorderColor)
+        defaultDrawable.cornerRadius = defaultRadius.toFloat()
+
+        val stateListDrawable = StateListDrawable()
+        stateListDrawable.addState(intArrayOf(android.R.attr.state_selected), selectedDrawable)
+        stateListDrawable.addState(StateSet.WILD_CARD, defaultDrawable)
+        return stateListDrawable
     }
 
     private fun startDragCompat(tag: Tag) {
@@ -187,5 +213,9 @@ class TagViewGroup: ViewGroup {
 
     private fun dp2px(dp: Float): Int {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics).toInt()
+    }
+
+    interface OnTagClickListener {
+        fun onTagClick(tag: Tag)
     }
 }
