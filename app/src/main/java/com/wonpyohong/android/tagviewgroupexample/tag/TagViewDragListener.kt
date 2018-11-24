@@ -7,6 +7,9 @@ import com.wonpyohong.android.tagviewgroupexample.tag.SensitivityAdjuster.*
 class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
     private val sensitivityAdjuster = SensitivityAdjuster()
 
+    private var lastTargetTag: Tag? = null
+    private var lastDirectionIsHorizontal = false
+
     override fun onDrag(destinationView: View, event: DragEvent): Boolean {
         val draggingTag = event.localState as Tag
         when (event.action) {
@@ -21,7 +24,9 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
                     return true
                 }
 
-                getRearrangePair(draggingTag, event)?.let { (dragginViewIndex, targetIndex) ->
+                val horizontalDirection = sensitivityAdjuster.isEnoughHorizontalMove(event.x)
+                val verticalDirection = sensitivityAdjuster.isEnoughVerticalMove(event.y)
+                getRearrangePair(draggingTag, event, horizontalDirection, verticalDirection)?.let { (dragginViewIndex, targetIndex) ->
                     var indexToAdd = targetIndex
 
                     val isDownDragging = draggingTag.rowIndex < tagViewGroup.tagList[targetIndex].rowIndex
@@ -54,29 +59,36 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
         return true
     }
 
-    private fun getRearrangePair(draggingTag: Tag, event: DragEvent): Pair<Int, Int>? {
+    private fun getRearrangePair(draggingTag: Tag, event: DragEvent,
+                                 horizontalDirection: DIRECTION, verticalDirection: DIRECTION): Pair<Int, Int>? {
         val targetTag = tagViewGroup.tagList.find { isPointOnView(it, event) }
         targetTag?.let {
             val draggingViewIndex = tagViewGroup.tagList.indexOf(draggingTag)
             val targetIndex = tagViewGroup.tagList.indexOf(targetTag)
 
-            val shouldRearrange = if (draggingTag.rowIndex == targetTag.rowIndex) {
-                val direction = sensitivityAdjuster.isEnoughHorizontalMove(event.x)
+            val shouldRearrange =
+                if (lastTargetTag == targetTag) {
+                    if (draggingTag.rowIndex == targetTag.rowIndex && lastDirectionIsHorizontal) {
+                        val isEnoughLeftMove = horizontalDirection == DIRECTION.LEFT && draggingViewIndex > targetIndex
+                        val isEnoughRightMove = horizontalDirection == DIRECTION.RIGHT && draggingViewIndex < targetIndex
 
-                val isEnoughLeftMove = direction == DIRECTION.LEFT && draggingViewIndex > targetIndex
-                val isEnoughRightMove = direction == DIRECTION.RIGHT && draggingViewIndex < targetIndex
+                        isEnoughLeftMove || isEnoughRightMove
+                    }
+                    else if (draggingTag.rowIndex != targetTag.rowIndex && !lastDirectionIsHorizontal) {
+                        val isEnoughUpMove = verticalDirection == DIRECTION.UP && draggingTag.rowIndex > targetTag.rowIndex
+                        val isEnoughDownMove = verticalDirection == DIRECTION.DOWN && draggingTag.rowIndex < targetTag.rowIndex
 
-                isEnoughLeftMove || isEnoughRightMove
-            }
-            else {
-                val direction = sensitivityAdjuster.isEnoughVerticalMove(event.y)
-                val isEnoughUpMove = direction == DIRECTION.UP && draggingTag.rowIndex > targetTag.rowIndex
-                val isEnoughDownMove = direction == DIRECTION.DOWN && draggingTag.rowIndex < targetTag.rowIndex
-
-                isEnoughUpMove || isEnoughDownMove
-            }
+                        isEnoughUpMove || isEnoughDownMove
+                    } else {
+                        true
+                    }
+                } else {
+                    true
+                }
 
             if (shouldRearrange) {
+                lastTargetTag = targetTag
+                lastDirectionIsHorizontal = draggingTag.rowIndex == targetTag.rowIndex
                 return Pair(draggingViewIndex, targetIndex)
             }
         }
