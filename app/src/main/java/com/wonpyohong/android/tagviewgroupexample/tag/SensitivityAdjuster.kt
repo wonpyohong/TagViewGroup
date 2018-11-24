@@ -1,6 +1,9 @@
 package com.wonpyohong.android.tagviewgroupexample.tag
 
 class SensitivityAdjuster {
+    private val horizontalSensitivity = 100
+    private val verticalSensitivity = 50
+
     private var prevX = 0f
     private var prevY = 0f
 
@@ -27,12 +30,12 @@ class SensitivityAdjuster {
 
         if (isLeft) {
             lastLeftMostX = x
-            if (lastRightMostX - x > 100) {
+            if (lastRightMostX - x > horizontalSensitivity) {
                 return DIRECTION.LEFT
             }
         } else if (isRight) {
             lastRightMostX = x
-            if (x - lastLeftMostX > 100) {
+            if (x - lastLeftMostX > horizontalSensitivity) {
                 return DIRECTION.RIGHT
             }
         }
@@ -46,12 +49,12 @@ class SensitivityAdjuster {
 
         if (isUp) {
             lastUpMostY = y
-            if (lastDownMostY - y > 100) {
+            if (lastDownMostY - y > verticalSensitivity) {
                 return DIRECTION.UP
             }
         } else if (isDown) {
             lastDownMostY = y
-            if (y - lastUpMostY > 100) {
+            if (y - lastUpMostY > verticalSensitivity) {
                 return DIRECTION.DOWN
             }
         }
