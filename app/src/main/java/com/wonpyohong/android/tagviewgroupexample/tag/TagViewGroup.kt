@@ -177,9 +177,9 @@ class TagViewGroup: ViewGroup {
 
     private fun startDragCompat(tag: Tag) {
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N) {
-            tag.view.startDragAndDrop(null, DragShadowBuilder(tag.view), tag, 0)
+            tag.view.startDragAndDrop(null, TagDragShadowBuilder(tag.view), tag, 0)
         } else {
-            tag.view.startDrag(null, DragShadowBuilder(tag.view), tag, 0)
+            tag.view.startDrag(null, TagDragShadowBuilder(tag.view), tag, 0)
         }
     }
 
