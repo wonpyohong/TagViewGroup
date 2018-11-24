@@ -2,7 +2,7 @@ package com.wonpyohong.android.tagviewgroupexample.tag
 
 class SensitivityAdjuster {
     private val horizontalSensitivity = 100
-    private val verticalSensitivity = 50
+    private val verticalSensitivity = 30
 
     private var prevX = 0f
     private var prevY = 0f
@@ -25,8 +25,8 @@ class SensitivityAdjuster {
     }
 
     fun isEnoughHorizontalMove(x: Float): DIRECTION {
-        val isRight = prevX - x < 0
-        val isLeft = prevX - x > 0
+        val isRight = prevX - x < -1
+        val isLeft = prevX - x > 1
 
         if (isLeft) {
             lastLeftMostX = x
@@ -44,8 +44,8 @@ class SensitivityAdjuster {
     }
 
     fun isEnoughVerticalMove(y: Float): DIRECTION {
-        val isUp = prevY - y > 0
-        val isDown = prevY - y < 0
+        val isUp = prevY - y > 1
+        val isDown = prevY - y < -1
 
         if (isUp) {
             lastUpMostY = y

@@ -25,7 +25,7 @@ class TagViewGroup: ViewGroup {
     private val defaultHorizontalPadding = dp2px(8f)
     private val defaultVerticalPadding = dp2px(4f)
 
-    private val defaultTextSize = sp2px(18f)
+    private val defaultTextSize = 18f
 
     private val defaultTextColor = Color.RED
 
@@ -163,7 +163,7 @@ class TagViewGroup: ViewGroup {
 
     fun setTextViewAttribute(textView: TextView) {
         with (textView) {
-            textSize = defaultTextSize.toFloat()
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, defaultTextSize)
             setTextColor(defaultTextColor)
             setPadding(defaultHorizontalPadding, defaultVerticalPadding, defaultHorizontalPadding, defaultVerticalPadding)
             setBackgroundResource(R.drawable.default_tag_background)
@@ -187,10 +187,5 @@ class TagViewGroup: ViewGroup {
 
     private fun dp2px(dp: Float): Int {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics).toInt()
-    }
-
-    private fun sp2px(sp: Float): Int {
-        val SCREEN_DENSITY = getResources().getDisplayMetrics().density;
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp / SCREEN_DENSITY, resources.displayMetrics).toInt()
     }
 }
