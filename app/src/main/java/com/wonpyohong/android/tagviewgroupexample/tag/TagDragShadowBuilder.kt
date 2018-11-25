@@ -2,10 +2,9 @@ package com.wonpyohong.android.tagviewgroupexample.tag
 
 import android.graphics.*
 import android.view.View
-import android.widget.TextView
 
 
-class TagDragShadowBuilder(val view: TextView) : View.DragShadowBuilder() {
+class TagDragShadowBuilder(draggingView: View) : View.DragShadowBuilder(draggingView) {
     private val scalingFactor = 1.2
     private val paint = Paint().apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)

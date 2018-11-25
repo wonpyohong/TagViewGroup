@@ -2,17 +2,15 @@ package com.wonpyohong.android.tagviewgroupexample.tag
 
 import android.animation.LayoutTransition
 import android.content.Context
-import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.StateListDrawable
-import android.os.Build
+import android.graphics.Rect
 import android.util.AttributeSet
-import android.util.StateSet
+import android.util.Log
 import android.util.TypedValue
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.TextView
-import com.wonpyohong.android.tagviewgroupexample.R
 
 
 class TagViewGroup: ViewGroup {
@@ -20,19 +18,10 @@ class TagViewGroup: ViewGroup {
     private var isFirstOnMeasure = true
     internal var isDragging = false
 
-    private val defaultHorizontalPadding = dp2px(8f)
-    private val defaultVerticalPadding = dp2px(4f)
+    private val defaultHorizontalPadding = dp2px(context, 8f)
+    private val defaultVerticalPadding = dp2px(context, 4f)
 
     private val defaultTextSize = 18f
-
-    private val defaultTextColor = Color.RED
-    private val defaultSelectedTextColor = Color.WHITE
-
-    private val defaultBackgroundColor = Color.WHITE
-    private val defaultBorderColor = Color.RED
-    private val defaultSelectedBackgroundColor = Color.RED
-
-    private val defaultRadius = dp2px(24f)
 
     var onTagClickListener: OnTagClickListener? = null
 
@@ -47,23 +36,68 @@ class TagViewGroup: ViewGroup {
         layoutTransition.enableTransitionType(LayoutTransition.CHANGING)
 
         tagLayoutHelper = TagLayoutHelper(context, paddingLeft, paddingTop, paddingRight, paddingBottom)
+
+        setOnTouchListener { v, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                val appendTag = tagList.find { it.type == TagType.APPEND }
+                if ((appendTag?.view as EditText).isFocused) {
+                    val outRect = Rect()
+                    appendTag.view.getGlobalVisibleRect(outRect)
+                    if (!outRect.contains(event.rawX.toInt(), event.rawY.toInt())) {
+                        appendTag.view.clearFocus()
+                    }
+                }
+            }
+            false
+        }
+
+        setOnHierarchyChangeListener(object: OnHierarchyChangeListener {
+            override fun onChildViewAdded(parent: View?, child: View?) {
+                child!!.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                child as TextView
+
+                val tag = Tag(child, type = (child.tag ?: TagType.NORMAL) as TagType)
+                tagList += tag
+
+                child.setOnClickListener(tag.type.getOnClickListener(tag, onTagClickListener))
+                child.setOnLongClickListener(tag.type.getOnLongClickListener(tag))
+                child.setOnFocusChangeListener(tag.type.getOnFocusChangeListener(context, this@TagViewGroup))
+
+                setTextViewAttribute(tag)
+            }
+
+            override fun onChildViewRemoved(parent: View?, child: View?) {
+                Log.d("HWP", "onChildViewRemoved")
+                tagList.remove(tagList.find { it.view == child })
+                tagList.find { Tag::type == TagType.APPEND } ?: addLastTag()
+            }
+        })
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+
+        addLastTag()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        if (isFirstOnMeasure) {      // to add Views in xml
-            isFirstOnMeasure = false
-            val viewList = (0..(childCount - 1)).map { getChildAt(it) as TextView }
-            tagList += viewList.map { Tag(it) }
-            tagList.forEach { tag ->
-                setTextViewAttribute(tag)
-                tag.view.setOnLongClickListener { view ->
-                    startDragCompat(tag)
-                    view.alpha = 0.5f
-
-                    true
-                }
-            }
-        }
+//        if (isFirstOnMeasure) {      // to add Views in xml
+//            isFirstOnMeasure = false
+//
+//            val viewList = (0..(childCount - 1)).map { getChildAt(it) as TextView }
+//            tagList += viewList.map { Tag(it) }
+//            tagList.forEach { tag ->
+//                setTextViewAttribute(tag)
+//                tag.view.setOnLongClickListener { view ->
+//                    startDragCompat(tag)
+//                    view.alpha = 0.5f
+//
+//                    true
+//                }
+//            }
+//
+//            addLastTag()
+//        }
 
         measureChildren(widthMeasureSpec, heightMeasureSpec)
 
@@ -97,15 +131,17 @@ class TagViewGroup: ViewGroup {
     fun addTag(text: String) {
         val tagView = TextView(context).apply {
             this.text = text
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            val tag = Tag(this)
+            this.tag = TagType.NORMAL
+        }
 
-            setOnLongClickListener { view ->
-                startDragCompat(tag)
-                view.alpha = 0.5f
+        addView(tagView)
+    }
 
-                true
-            }
+    fun addLastTag() {
+        val tagView = EditText(context).apply {
+            setText("추가")
+            minWidth = 100
+            this.tag = TagType.APPEND
         }
 
         addView(tagView)
@@ -114,49 +150,14 @@ class TagViewGroup: ViewGroup {
     private fun setTextViewAttribute(tag: Tag) {
         with (tag.view) {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, defaultTextSize)
-            setTextColor(defaultTextColor)
+            setTextColor(tag.type.getTextColor(isSelected))
             setPadding(defaultHorizontalPadding, defaultVerticalPadding, defaultHorizontalPadding, defaultVerticalPadding)
 
-            background = getStateListDrawable()
-
-            setOnClickListener {
-                this.isSelected = !isSelected
-                setTextColor(if (isSelected) defaultSelectedTextColor else defaultTextColor)
-
-                onTagClickListener?.onTagClick(tag)
-            }
-        }
-    }
-
-    private fun getStateListDrawable(): StateListDrawable {
-        val selectedDrawable = context.getDrawable(R.drawable.selected_tag_background) as GradientDrawable
-        selectedDrawable.setColor(defaultSelectedBackgroundColor)
-        selectedDrawable.cornerRadius = defaultRadius.toFloat()
-
-        val defaultDrawable = context.getDrawable(R.drawable.default_tag_background) as GradientDrawable
-        defaultDrawable.setColor(defaultBackgroundColor)
-        defaultDrawable.setStroke(dp2px(1f), defaultBorderColor)
-        defaultDrawable.cornerRadius = defaultRadius.toFloat()
-
-        val stateListDrawable = StateListDrawable()
-        stateListDrawable.addState(intArrayOf(android.R.attr.state_selected), selectedDrawable)
-        stateListDrawable.addState(StateSet.WILD_CARD, defaultDrawable)
-        return stateListDrawable
-    }
-
-    private fun startDragCompat(tag: Tag) {
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N) {
-            tag.view.startDragAndDrop(null, TagDragShadowBuilder(tag.view), tag, 0)
-        } else {
-            tag.view.startDrag(null, TagDragShadowBuilder(tag.view), tag, 0)
+            background = tag.type.getBackground(context)
         }
     }
 
     internal fun isChangingLayout() = layoutTransition.isChangingLayout
-
-    private fun dp2px(dp: Float): Int {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics).toInt()
-    }
 
     interface OnTagClickListener {
         fun onTagClick(tag: Tag)
