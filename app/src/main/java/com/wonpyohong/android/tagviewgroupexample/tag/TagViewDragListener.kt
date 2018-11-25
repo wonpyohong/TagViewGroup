@@ -1,7 +1,9 @@
 package com.wonpyohong.android.tagviewgroupexample.tag
 
+import android.util.Log
 import android.view.DragEvent
 import android.view.View
+import android.widget.EditText
 import com.wonpyohong.android.tagviewgroupexample.tag.SensitivityAdjuster.*
 
 class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
@@ -26,7 +28,7 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
 
                 val horizontalDirection = sensitivityAdjuster.isEnoughHorizontalMove(event.x)
                 val verticalDirection = sensitivityAdjuster.isEnoughVerticalMove(event.y)
-                getRearrangePair(draggingTag, event, horizontalDirection, verticalDirection)?.let { (dragginViewIndex, targetIndex) ->
+                getRearrangePair(draggingTag, event, horizontalDirection, verticalDirection)?.let { (draggingViewIndex, targetIndex) ->
                     var indexToAdd = targetIndex
 
                     val isDownDragging = draggingTag.rowIndex < tagViewGroup.tagList[targetIndex].rowIndex
@@ -39,7 +41,7 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
                         draggingTag.rowIndex = tagViewGroup.tagList[targetIndex].rowIndex
                     }
 
-                    tagViewGroup.tagList.removeAt(dragginViewIndex)
+                    tagViewGroup.tagList.removeAt(draggingViewIndex)
                     tagViewGroup.tagList.add(indexToAdd, draggingTag)
 
                     tagViewGroup.requestLayout()
@@ -62,6 +64,10 @@ class TagViewDragListener(val tagViewGroup: TagViewGroup): View.OnDragListener {
     private fun getRearrangePair(draggingTag: Tag, event: DragEvent,
                                  horizontalDirection: DIRECTION, verticalDirection: DIRECTION): Pair<Int, Int>? {
         val targetTag = tagViewGroup.tagList.find { isPointOnView(it, event) }
+        if (targetTag == draggingTag) {
+            return null
+        }
+
         targetTag?.let {
             val draggingViewIndex = tagViewGroup.tagList.indexOf(draggingTag)
             val targetIndex = tagViewGroup.tagList.indexOf(targetTag)

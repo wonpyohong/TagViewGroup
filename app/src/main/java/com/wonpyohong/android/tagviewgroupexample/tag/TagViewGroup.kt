@@ -67,7 +67,6 @@ class TagViewGroup: ViewGroup {
             }
 
             override fun onChildViewRemoved(parent: View?, child: View?) {
-                Log.d("HWP", "onChildViewRemoved")
                 tagList.remove(tagList.find { it.view == child })
                 tagList.find { Tag::type == TagType.APPEND } ?: addLastTag()
             }
@@ -81,24 +80,6 @@ class TagViewGroup: ViewGroup {
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-//        if (isFirstOnMeasure) {      // to add Views in xml
-//            isFirstOnMeasure = false
-//
-//            val viewList = (0..(childCount - 1)).map { getChildAt(it) as TextView }
-//            tagList += viewList.map { Tag(it) }
-//            tagList.forEach { tag ->
-//                setTextViewAttribute(tag)
-//                tag.view.setOnLongClickListener { view ->
-//                    startDragCompat(tag)
-//                    view.alpha = 0.5f
-//
-//                    true
-//                }
-//            }
-//
-//            addLastTag()
-//        }
-
         measureChildren(widthMeasureSpec, heightMeasureSpec)
 
         val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
@@ -142,6 +123,9 @@ class TagViewGroup: ViewGroup {
             setText("추가")
             minWidth = 100
             this.tag = TagType.APPEND
+
+            setOnDragListener { v, event -> true }
+            setTextIsSelectable(false)
         }
 
         addView(tagView)
